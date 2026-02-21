@@ -6,6 +6,7 @@ import subprocess
 import concurrent.futures
 import json
 import os
+import pytz # type: ignore
 from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # 引入我们打磨好的所有模块并屏蔽 IDE 环境尚未识别到的本地包爆红 (Suppress IDE import false-alarms)
@@ -21,9 +22,10 @@ from monitor_hud import CyberpunkRadarHUD, send_mobile_notification  # type: ign
 # ==========================================
 
 def is_trading_time() -> bool:
-    """粗略判断是否在港股交易时间段 (简化版: 工作日 09:30-16:00)"""
-    now = datetime.datetime.now()
-    if now.weekday() >= 5: return False # 周末不交易
+    """精准判断港股交易时间段 (强制锁定东八区时区，防止海外运行时区错乱) [Phase 19 Fix 1]"""
+    hk_tz = pytz.timezone('Asia/Hong_Kong')
+    now = datetime.datetime.now(hk_tz)
+    if now.weekday() >= 5: return False  # 周末不交易
     current_time = now.time()
     return (datetime.time(9, 30) <= current_time <= datetime.time(12, 0)) or \
            (datetime.time(13, 0) <= current_time <= datetime.time(16, 0))
@@ -95,13 +97,13 @@ def fast_tick_monitor(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
     """
     targets_for_hud = TARGET_POOL[:4] # 严格限制最多观测 4 支
     hud.register_symbols(targets_for_hud) # 初始化 UI 槽位
-    
+
     while True:
-        # 调试阶段强制放行：注释掉安全锁，方便在非交易时间查看真实数据流动
-        # if not is_trading_time():
-        #     time.sleep(60)
-        #     continue
-            
+        # [Phase 19 Fix 4] 实盘防线已恢复：非交易时间进入休眠，防止当 API 请求背山
+        if not is_trading_time():
+            time.sleep(60)
+            continue
+
         try:
             # 读取前端自定义的 watchlist
             watchlist = []
@@ -119,6 +121,9 @@ def fast_tick_monitor(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
             spot_df = ak.stock_hk_spot_em()
             spot_df['代码'] = spot_df['代码'].astype(str)
             
+            # [Phase 19 Fix 2] 将深拷贝提到循环外，每个 tick 只获取一次全局快照而不是 N 次
+            safe_positions = risk_sys.get_positions_copy()
+            
             cache_data = {}
             for symbol in all_targets:
                 clean_sym = symbol.replace(".HK", "")
@@ -135,14 +140,12 @@ def fast_tick_monitor(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
                     if symbol in targets_for_hud:
                         hud.update_tick(symbol, current_price, pct_change)
                         
-                        # 毫秒级风控心跳：立刻计算是否触发了 8% 割肉或移动止盈
-                        # 安全获取一份深拷贝的 positions 用于迭代判断
-                        safe_positions = risk_sys.get_positions_copy()
+                        # 直接使用循环外的 safe_positions 快照进行判断
                         if symbol in safe_positions:
                             if risk_sys.monitor_dynamic_stop_loss(symbol, current_price):
                                 hud.update_status(symbol, "SELL_ALL")
                                 send_mobile_notification(symbol, "SELL_ALL", f"急速雷达极速防线触发！现价: {current_price}")
-                                risk_sys.mock_sell_all(symbol) # 本地落盘清仓
+                                risk_sys.mock_sell_all(symbol)  # 本地落盘清仓
                                 
             # 将多维度行情原子写入到本地缓存文件 
             tmp_cache = "realtime_cache.json.tmp"
@@ -193,9 +196,14 @@ def run_schedule_loop(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
         global_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
 
         with global_executor as executor:
-            # 【脱离沙盘 3】让 AI 真正分析所有自定义标的，而不仅仅是前 4 支！
-            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in active_targets]  # type: ignore
-            concurrent.futures.wait(futures)
+            # [Phase 19 Fix 3] 让 AI 真正分析所有自定义标的，并暴露线程内部的隐藏异常
+            fut_map = {executor.submit(single_target_cycle, symbol, risk_sys, hud): symbol  # type: ignore
+                       for symbol in active_targets}
+            for future in concurrent.futures.as_completed(fut_map):
+                try:
+                    future.result()  # 激发并捕获子线程内部的隐藏异常
+                except Exception as e:
+                    log_error(f"[-] AI 思考舱处理标的 {fut_map[future]} 时发生崩溃: {e}")
 
         log_info("[+] 本轮全盘并发扫描已结束，系统进入休眠等待下一班车。")
 
