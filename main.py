@@ -37,15 +37,15 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
         df = kline_future.result()
         news_list = news_future.result()
         
-    if df is None or df.empty: 
+    if df is None or df.empty: # type: ignore
         return
     
     # 向 IDE 声明 df 此时绝对不为 None，消除报警
     assert df is not None 
 
-    current_price = float(df.iloc[-1]['收盘'])
-    current_rsi = float(df.iloc[-1]['RSI_14'])
-    macd_hist = float(df.iloc[-1]['MACD_HIST'])
+    current_price = float(df.iloc[-1]['收盘']) # type: ignore
+    current_rsi = float(df.iloc[-1]['RSI_14']) # type: ignore
+    macd_hist = float(df.iloc[-1]['MACD_HIST']) # type: ignore
     
     # 2. 风控前置：检查是否触发割肉/止盈警报
     if risk_sys.monitor_dynamic_stop_loss(symbol, current_price):
