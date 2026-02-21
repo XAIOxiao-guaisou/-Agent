@@ -54,6 +54,8 @@ class CyberpunkRadarHUD:
         self.slots = {}
         self.is_flashing = False
         self._last_latency = 0
+        self.x = 0
+        self.y = 0
 
         # --- 顶栏 UI 布局 ---
         top_frame = tk.Frame(self.root, bg=self.bg_color)
@@ -107,7 +109,7 @@ class CyberpunkRadarHUD:
         y = self.root.winfo_y() + deltay
         self.root.geometry(f"+{x}+{y}")
 
-    def register_symbols(self, symbols: list):
+    def register_symbols(self, symbols: list): # type: ignore
         """初始化监控白名单的槽位 UI"""
         for sym in symbols[:self.max_slots]:
             frame = tk.Frame(self.slots_frame, bg="#1F2833", pady=2)

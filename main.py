@@ -4,6 +4,8 @@ from threading import Thread
 import datetime
 import subprocess
 import concurrent.futures
+import json
+import os
 from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # 引入我们打磨好的所有模块并屏蔽 IDE 环境尚未识别到的本地包爆红 (Suppress IDE import false-alarms)
@@ -53,6 +55,8 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
         hud.update_status(symbol, "SELL_ALL")
         send_mobile_notification(symbol, "SELL_ALL", f"触发本地风控止损/止盈防线！现价: {current_price}")
         risk_sys.mock_sell_all(symbol)
+        
+        # 如果从深层拷贝中读写字典
         return
 
     # 从并发获取的结果中提取数据
@@ -87,22 +91,36 @@ def fast_tick_monitor(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
     """
     高频价格雷达 (Fast Tick Radar)
     每 10 秒扫描一次白名单标的，越过大模型直接触发本地硬风控防线。
+    将拉取结果写入 realtime_cache.json 供前端零延迟读取。
     """
-    targets = TARGET_POOL[:4] # 严格限制最多观测 4 支
-    hud.register_symbols(targets) # 初始化 UI 槽位
+    targets_for_hud = TARGET_POOL[:4] # 严格限制最多观测 4 支
+    hud.register_symbols(targets_for_hud) # 初始化 UI 槽位
     
     while True:
-        # 实盘安全锁：非交易时间不进行高频请求防止东财 IP 封禁
-        if not is_trading_time():
-            time.sleep(60)
-            continue
+        # 调试阶段强制放行：注释掉安全锁，方便在非交易时间查看真实数据流动
+        # if not is_trading_time():
+        #     time.sleep(60)
+        #     continue
             
         try:
+            # 读取前端自定义的 watchlist
+            watchlist = []
+            if os.path.exists("watchlist.json"):
+                try:
+                    with open("watchlist.json", "r", encoding="utf-8") as f:
+                        watchlist = json.load(f)
+                except Exception:
+                    pass
+            
+            # 合并所有需要监控的标的 (去重)
+            all_targets = list(set(TARGET_POOL + watchlist))
+            
             # 获取东财全市场实时快照 (极速轻量接口)
             spot_df = ak.stock_hk_spot_em()
             spot_df['代码'] = spot_df['代码'].astype(str)
             
-            for symbol in targets:
+            cache_data = {}
+            for symbol in all_targets:
                 clean_sym = symbol.replace(".HK", "")
                 match = spot_df[spot_df['代码'] == clean_sym]
                 
@@ -110,38 +128,58 @@ def fast_tick_monitor(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
                     current_price = float(match.iloc[0]['最新价'])
                     pct_change = float(match.iloc[0]['涨跌幅'])
                     
-                    # 1. 刷新桌面雷达 UI
-                    hud.update_tick(symbol, current_price, pct_change)
+                    # 保存到缓存结构中供 Web UI 读取
+                    cache_data[symbol] = {"price": current_price, "pct": pct_change}
                     
-                    # 2. 毫秒级风控心跳：立刻计算是否触发了 8% 割肉或移动止盈
-                    if symbol in risk_sys.positions:
-                        if risk_sys.monitor_dynamic_stop_loss(symbol, current_price):
-                            hud.update_status(symbol, "SELL_ALL")
-                            send_mobile_notification(symbol, "SELL_ALL", f"急速雷达极速防线触发！现价: {current_price}")
-                            risk_sys.mock_sell_all(symbol) # 本地落盘清仓
-                            
+                    # 如果是前4大核心标的，刷新桌面雷达 UI 和风控心跳
+                    if symbol in targets_for_hud:
+                        hud.update_tick(symbol, current_price, pct_change)
+                        
+                        # 毫秒级风控心跳：立刻计算是否触发了 8% 割肉或移动止盈
+                        # 安全获取一份深拷贝的 positions 用于迭代判断
+                        safe_positions = risk_sys.get_positions_copy()
+                        if symbol in safe_positions:
+                            if risk_sys.monitor_dynamic_stop_loss(symbol, current_price):
+                                hud.update_status(symbol, "SELL_ALL")
+                                send_mobile_notification(symbol, "SELL_ALL", f"急速雷达极速防线触发！现价: {current_price}")
+                                risk_sys.mock_sell_all(symbol) # 本地落盘清仓
+                                
+            # 将多维度行情原子写入到本地缓存文件 
+            tmp_cache = "realtime_cache.json.tmp"
+            with open(tmp_cache, "w", encoding="utf-8") as f:
+                json.dump(cache_data, f, ensure_ascii=False)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_cache, "realtime_cache.json")
+            
         except Exception as e:
             # 不死鸟机制：捕获网络抖动，防止监控主线程崩溃
             log_error(f"[-] 高频雷达网络抖动拦截成功: {e}")
             
         time.sleep(10) # 10 秒轮询一次，保护 IP 且满足实盘监控需求
 
+# 维护全局 ThreadPool 对象以便优雅退出
+global_executor = None
 
 def run_schedule_loop(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
     """后台定时任务慢速 AI 思考循环"""
+    global global_executor
     
     def job():
-        # 如果不在交易时间，直接跳过 (实盘解除此注释)
-        if not is_trading_time(): 
-            log_info(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 当前非交易时间，跳过全盘扫描。")
-            return
+        # 调试阶段强制放行：注释掉非交易时间的跳过逻辑
+        # if not is_trading_time(): 
+        #     log_info(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 当前非交易时间，跳过全盘扫描。")
+        #     return
            
         log_info(f"\n[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<")
         
         # ThreadPool 并发管理 (根据建议调整为保守策略)
         max_workers = 2 # 设定为保守并流，防止大模型 API Rate Limit
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        global global_executor
+        global_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+        
+        with global_executor as executor:
             # 提交所有的独立标的任务到线程池 (限制为前4支以匹配雷达)
             futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in TARGET_POOL[:4]] # type: ignore
             
@@ -167,7 +205,7 @@ def run_schedule_loop(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
 
 if __name__ == "__main__":
     import os # Add missing os import for cpu_count
-    setup_global_proxy()
+    # setup_global_proxy() # 调试阶段注释掉代理，防止报错
     
     # 自动拉起 Streamlit Web UI 监控中心 (Auto-launch Streamlit Web UI)
     log_info("\n[+] 正在后台启动 Streamlit 赛博指挥中心...")
@@ -187,15 +225,28 @@ if __name__ == "__main__":
     hud = CyberpunkRadarHUD(max_slots=4)
     risk_sys = LocalRiskController(initial_capital=100000.0)
     
-    # 线程 1: 启动高频急速监控雷达 (负责 10 秒级看盘与保命止损)
-    log_info("[*] 正在点火后台 10秒级 高频防灾雷达守护进程 (Tick Daemon)...")
-    tick_thread = Thread(target=fast_tick_monitor, args=(hud, risk_sys), daemon=True)
-    tick_thread.start()
-    
-    # 线程 2: 启动慢速大模型思考调度 (负责小时级宏观分析与建仓)
-    log_info("[*] 正在点火后台 小时级 并发思考守护进程 (Brain Daemon)...")
-    ai_thread = Thread(target=run_schedule_loop, args=(hud, risk_sys), daemon=True)
-    ai_thread.start()
-    
-    # 启动 GUI 主循环 (挂靠主线程)
-    hud.start()
+    # 包装全局退出逻辑
+    try:
+        # 线程 1: 启动高频急速监控雷达 (负责 10 秒级看盘与保命止损)
+        log_info("[*] 正在点火后台 10秒级 高频防灾雷达守护进程 (Tick Daemon)...")
+        tick_thread = Thread(target=fast_tick_monitor, args=(hud, risk_sys), daemon=True)
+        tick_thread.start()
+        
+        # 线程 2: 启动慢速大模型思考调度 (负责小时级宏观分析与建仓)
+        log_info("[*] 正在点火后台 小时级 并发思考守护进程 (Brain Daemon)...")
+        ai_thread = Thread(target=run_schedule_loop, args=(hud, risk_sys), daemon=True)
+        ai_thread.start()
+        
+        # 启动 GUI 主循环 (挂靠主线程)
+        hud.start()
+    except KeyboardInterrupt:
+        log_warn("\n[!] 收到外界中断指令 (KeyboardInterrupt)！系统正在执行优雅退出流水线...")
+    finally:
+        # 优雅退出流：等待所有在途的订单和落盘逻辑执行完毕
+        if global_executor is not None:
+            log_info("[*] 正在关闭底层 ThreadPoolExecutor，等待所有任务排空...")
+            global_executor.shutdown(wait=True)
+        
+        log_info("[*] 正在最后一次安全核对内存状态与硬盘状态...")
+        risk_sys.save_positions()
+        log_info("[+] 量化交易系统安全停机保护完成。主进程退出。")

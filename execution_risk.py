@@ -12,7 +12,7 @@ class LocalRiskController:
         self.total_capital = initial_capital
         self.max_exposure_ratio = 0.10
         self.persist_file = persist_file
-        self.lock = threading.Lock() # 新增线程安全锁 (Added thread-safe lock)
+        self.lock = threading.RLock() # 新增可重入锁 (Added Re-entrant thread-safe lock)
         
         # 启动时自动从本地恢复记忆
         self.positions = self.load_positions()
@@ -27,6 +27,12 @@ class LocalRiskController:
             except Exception as e:
                 log_error(f"[-] 加载本地持仓失败: {e}")
         return {}
+        
+    def get_positions_copy(self) -> dict:
+        """返回深层拷贝的安全只读字典供其他线程使用"""
+        with self.lock:
+            import copy
+            return copy.deepcopy(self.positions)
 
     def save_positions(self):
         """将当前持仓状态落盘保存 (原子级写入 Atomic Write + Thread-Safe ThreadLock)"""
@@ -73,32 +79,34 @@ class LocalRiskController:
             return deepseek_decision
 
         elif action == "SELL":
-             if symbol not in self.positions:
-                 return {"action": "HOLD", "reason": "NO_POSITION"}
-             return deepseek_decision
+            with self.lock: # 读锁防并发崩溃 (Read lock)
+                 if symbol not in self.positions:
+                     return {"action": "HOLD", "reason": "NO_POSITION"}
+            return deepseek_decision
         return deepseek_decision
 
     def monitor_dynamic_stop_loss(self, symbol: str, current_price: float) -> bool:
-        if symbol not in self.positions: return False
-        pos = self.positions[symbol]
-        cost_price = pos["cost_price"]
-        
-        # 更新最高价并持久化
-        if current_price > pos["highest_price"]:
-            pos["highest_price"] = current_price
-            self.save_positions()
+        with self.lock: # 全局包围防竞争 (Enclose fully to prevent race condition during iteration)
+            if symbol not in self.positions: return False
+            pos = self.positions[symbol]
+            cost_price = pos["cost_price"]
             
-        highest_price = pos["highest_price"]
-        
-        if highest_price >= cost_price * 1.10: 
-            if (highest_price - current_price) / highest_price >= 0.05:
-                log_warn(f"[!!!] 警报: {symbol} 触发移动止盈！强制 SELL_ALL。")
-                return True
+            # 更新最高价并持久化
+            if current_price > pos["highest_price"]:
+                pos["highest_price"] = current_price
+                self.save_positions()
                 
-        if current_price <= cost_price * 0.92:
-            log_warn(f"[!!!] 警报: {symbol} 跌破8%硬止损！强制 SELL_ALL。")
-            return True
-        return False
+            highest_price = pos["highest_price"]
+            
+            if highest_price >= cost_price * 1.10: 
+                if (highest_price - current_price) / highest_price >= 0.05:
+                    log_warn(f"[!!!] 警报: {symbol} 触发移动止盈！强制 SELL_ALL。")
+                    return True
+                    
+            if current_price <= cost_price * 0.92:
+                log_warn(f"[!!!] 警报: {symbol} 跌破8%硬止损！强制 SELL_ALL。")
+                return True
+            return False
         
     def mock_buy(self, symbol: str, price: float, volume: int):
         with self.lock: # 修改持仓字典也要上锁 (Lock memory dict update)
