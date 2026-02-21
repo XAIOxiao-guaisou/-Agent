@@ -8,7 +8,7 @@ from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # 引入我们打磨好的所有模块并屏蔽 IDE 环境尚未识别到的本地包爆红 (Suppress IDE import false-alarms)
 from config import setup_global_proxy  # type: ignore
-from data_harvester import TARGET_POOL, fetch_and_clean_kline_data, fetch_sentiment_news  # type: ignore
+from data_harvester import TARGET_POOL, fetch_and_clean_kline_data, fetch_multi_dim_intelligence  # type: ignore
 from deepseek_brain import ask_deepseek  # type: ignore
 from execution_risk import LocalRiskController  # type: ignore
 from monitor_hud import CyberpunkHUD, send_mobile_notification  # type: ignore
@@ -32,10 +32,10 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
     # 1. 并发启动感知层获取 K线数据 和 新闻情绪数据 (Parallelized network fetching to halve latency)
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         kline_future = executor.submit(fetch_and_clean_kline_data, symbol, "60")
-        news_future = executor.submit(fetch_sentiment_news, symbol)
+        intell_future = executor.submit(fetch_multi_dim_intelligence, symbol)
         
         df = kline_future.result()
-        news_list = news_future.result()
+        intelligence_dict = intell_future.result()
         
     if df is None or df.empty: # type: ignore
         return
@@ -64,7 +64,7 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
     # 3. 呼叫 DeepSeek 决策大脑
     # 为了防止网络抖动，计算时间较长
     start_time = time.time()
-    ai_decision = ask_deepseek(symbol, market_data_snapshot, news_list)
+    ai_decision = ask_deepseek(symbol, market_data_snapshot, intelligence_dict)
     latency_ms = int((time.time() - start_time) * 1000)
     hud.update_network_latency(latency_ms)
 

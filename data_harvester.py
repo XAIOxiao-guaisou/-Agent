@@ -86,46 +86,55 @@ USER_AGENTS = [
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 ]
 
-def fetch_sentiment_news(symbol: str) -> list:
+def fetch_multi_dim_intelligence(symbol: str) -> dict:
     """
-    抓取对应港股的非结构化情绪数据 (如新闻或财联社电报)
-    Fetch unstructured sentiment data (e.g., news or telegraphs) for the symbol.
-    
-    :param symbol: 股票代码 (例如 "00700")
-    :return: 包含新闻标题的列表
+    抓取多维度情报网 (Multi-Dimensional Intelligence Web)
+    包含: 1. 个股微观新闻  2. 宏观实时电报
     """
     if symbol not in TARGET_POOL:
         raise ValueError(f"[!] 越权访问警告: {symbol} 不在 TARGET_POOL 白名单中！")
         
-    print(f"[*] 正在收集 {symbol} 的市场情绪与新闻弹药...")
+    print(f"[*] 正在雷达扫描 {symbol} 的多维度市场情绪...")
     
-    # 动态伪装与防封 IP 休眠机制 (Anti-bot mechanisms)
-    # 随机选择 User-Agent, 并在请求前随机休眠 2-5 秒
+    # 防封 IP 休眠机制
     headers = {"User-Agent": random.choice(USER_AGENTS)}
-    sleep_time = random.uniform(2, 5)
-    print(f"[*] [防反爬伪装] 选择 User-Agent, 准备休眠 {sleep_time:.2f} 秒...")
-    time.sleep(sleep_time)
+    time.sleep(random.uniform(2, 5))
     
-    news_list = []
+    intelligence_pack = {
+        "micro_stock_news": [],   # 个股新闻
+        "macro_market_news": []   # 宏观大盘电报
+    }
+    
+    # 维度 1: 抓取个股微观新闻 (Micro Sentiment)
     try:
-        # 实际使用 AkShare 的个股新闻接口 (东方财富数据源)
-        # Use AkShare's individual stock news interface (Eastmoney data source)
         news_df = ak.stock_news_em(symbol=symbol)
-        
         if news_df is not None and not news_df.empty:
-            # 提取前 5 条最新新闻的标题作为大模型的情绪弹药
-            # Extract the 5 most recent news headlines as sentiment ammunition for the LLM
-            # 注意: 不同版本的 AkShare 返回列名可能存在差异，通常包含 '新闻标题'
             titles = news_df['新闻标题'].head(5).tolist()
-            news_list = [f"【市场新闻】{title}" for title in titles]
-            log_info(f"[+] {symbol} 情绪收集完毕，共获取 {len(news_list)} 条真实新闻弹药。")
-        else:
-            log_warn(f"[-] {symbol} 未抓取到有效新闻，弹药库为空。")
-            
-        return news_list
+            intelligence_pack["micro_stock_news"] = [f"【个股】{t}" for t in titles]
     except Exception as e:
-        log_error(f"[-] 获取 {symbol} 真新闻数据失败: {str(e)}")
-        return []
+        print(f"[-] 获取 {symbol} 个股新闻失败: {str(e)}")
+
+    # 维度 2: 抓取全市场宏观实时电报 (Macro Sentiment - 财联社)
+    try:
+        # 抓取财联社实时电报，获取大盘宏观情绪
+        macro_df = ak.stock_telegraph_cls()
+        if macro_df is not None and not macro_df.empty:
+            # 过滤掉过长的内容，只取标题或简讯的前 4 条
+            macro_titles = macro_df['标题'].head(4).tolist()
+            # 如果标题为空，尝试提取内容的前 50 个字
+            cleaned_macros = []
+            for idx, row in macro_df.head(4).iterrows():
+                title_str = str(row.get('标题', ''))
+                content_str = str(row.get('内容', ''))
+                text = title_str if title_str and title_str != 'nan' else content_str[:50] + "..." # type: ignore
+                cleaned_macros.append(f"【宏观】{text}")
+                
+            intelligence_pack["macro_market_news"] = cleaned_macros
+    except Exception as e:
+        print(f"[-] 获取宏观电报失败: {str(e)}")
+
+    print(f"[+] 情报网抓取完毕: {len(intelligence_pack['micro_stock_news'])}条微观, {len(intelligence_pack['macro_market_news'])}条宏观。")
+    return intelligence_pack
 
 if __name__ == "__main__":
     setup_global_proxy()
@@ -135,5 +144,5 @@ if __name__ == "__main__":
          print(df_700.tail())
          
     # 测试拉取腾讯情绪数据
-    news_700 = fetch_sentiment_news("00700")
-    print(news_700)
+    intell_700 = fetch_multi_dim_intelligence("00700")
+    print(intell_700)

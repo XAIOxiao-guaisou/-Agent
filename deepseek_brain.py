@@ -56,7 +56,7 @@ def clean_r1_output(raw_output: str) -> str:
     # 3. 兜底清理首尾空白符
     return cleaned.strip()
 
-def ask_deepseek(symbol: str, market_data: dict, news_list: list, retry_count: int = 3) -> dict:
+def ask_deepseek(symbol: str, market_data: dict, intelligence_dict: dict, retry_count: int = 3) -> dict:
     """
     与 DeepSeek 大脑进行交互并带有容错回退机制
     Interact with the DeepSeek Brain with fault-tolerance and fallback mechanisms.
@@ -67,9 +67,13 @@ TARGET ASSET: {symbol}
 MARKET DATA SNAPSHOT (Last 60 mins):
 {json.dumps(market_data, ensure_ascii=False, indent=2)}
 
-LATEST NEWS/SENTIMENT:
-{json.dumps(news_list, ensure_ascii=False, indent=2)}
+MULTI-DIMENSIONAL INTELLIGENCE:
+{json.dumps(intelligence_dict, ensure_ascii=False, indent=2)}
 
+INSTRUCTIONS FOR REASONING:
+1. Micro (micro_stock_news): Assess the direct catalyst for {symbol}.
+2. Macro (macro_market_news): Assess the overall market systemic risk or trend. 
+3. If Macro is extremely bearish, DO NOT BUY even if Micro is good.
 Based strictly on this data, provide your JSON decision.
 """
     
@@ -133,9 +137,11 @@ if __name__ == "__main__":
     setup_global_proxy()
     # 模拟沙盒测试数据 (Mock Sandbox Data)
     mock_market = {"close": 280.5, "RSI_14": 35.2, "MACD": -1.5}
-    mock_news = ["腾讯大模型取得突破", "游戏业务超预期"]
+    mock_intell = {
+        "micro_stock_news": ["【个股】腾讯大模型取得突破", "【个股】游戏业务超预期"],
+        "macro_market_news": ["【宏观】美联储暗示年内降息一次", "【宏观】恒生指数强势破冰"]
+    }
     
-    # 这个调用会因为没有真实的 API Key 而返回 401 错误，但能验证 Fallback 机制是否有效触发
-    # This call will fail with 401 due to a dummy API key, which perfectly verifies the Fallback mechanism.
-    decision = ask_deepseek("00700", mock_market, mock_news)
+    # 这只是沙盒测试
+    decision = ask_deepseek("00700", mock_market, mock_intell)
     print("最终输出 (Final Output):", decision)
