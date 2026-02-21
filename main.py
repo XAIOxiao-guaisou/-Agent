@@ -8,10 +8,11 @@ from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # 引入我们打磨好的所有模块并屏蔽 IDE 环境尚未识别到的本地包爆红 (Suppress IDE import false-alarms)
 from config import setup_global_proxy  # type: ignore
+import akshare as ak # type: ignore
 from data_harvester import TARGET_POOL, fetch_and_clean_kline_data, fetch_multi_dim_intelligence  # type: ignore
 from deepseek_brain import ask_deepseek  # type: ignore
 from execution_risk import LocalRiskController  # type: ignore
-from monitor_hud import CyberpunkHUD, send_mobile_notification  # type: ignore
+from monitor_hud import CyberpunkRadarHUD, send_mobile_notification  # type: ignore
 
 # ==========================================
 # Phase 7: Main Daemon (总线调度器)
@@ -25,7 +26,7 @@ def is_trading_time() -> bool:
     return (datetime.time(9, 30) <= current_time <= datetime.time(12, 0)) or \
            (datetime.time(13, 0) <= current_time <= datetime.time(16, 0))
 
-def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: CyberpunkHUD):
+def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: CyberpunkRadarHUD):
     """单只股票的 [感知 -> 思考 -> 风控执行] 完整生命周期"""
     hud.update_status(symbol, "SCANNING...")
     
@@ -82,9 +83,52 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
         risk_sys.mock_sell_all(symbol)
         send_mobile_notification(symbol, "SELL", final_decision.get("reason", ""))
 
-def run_schedule_loop(hud: CyberpunkHUD):
-    """后台定时任务循环"""
-    risk_sys = LocalRiskController(initial_capital=100000.0)
+def fast_tick_monitor(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
+    """
+    高频价格雷达 (Fast Tick Radar)
+    每 10 秒扫描一次白名单标的，越过大模型直接触发本地硬风控防线。
+    """
+    targets = TARGET_POOL[:4] # 严格限制最多观测 4 支
+    hud.register_symbols(targets) # 初始化 UI 槽位
+    
+    while True:
+        # 实盘安全锁：非交易时间不进行高频请求防止东财 IP 封禁
+        if not is_trading_time():
+            time.sleep(60)
+            continue
+            
+        try:
+            # 获取东财全市场实时快照 (极速轻量接口)
+            spot_df = ak.stock_hk_spot_em()
+            spot_df['代码'] = spot_df['代码'].astype(str)
+            
+            for symbol in targets:
+                clean_sym = symbol.replace(".HK", "")
+                match = spot_df[spot_df['代码'] == clean_sym]
+                
+                if not match.empty:
+                    current_price = float(match.iloc[0]['最新价'])
+                    pct_change = float(match.iloc[0]['涨跌幅'])
+                    
+                    # 1. 刷新桌面雷达 UI
+                    hud.update_tick(symbol, current_price, pct_change)
+                    
+                    # 2. 毫秒级风控心跳：立刻计算是否触发了 8% 割肉或移动止盈
+                    if symbol in risk_sys.positions:
+                        if risk_sys.monitor_dynamic_stop_loss(symbol, current_price):
+                            hud.update_status(symbol, "SELL_ALL")
+                            send_mobile_notification(symbol, "SELL_ALL", f"急速雷达极速防线触发！现价: {current_price}")
+                            risk_sys.mock_sell_all(symbol) # 本地落盘清仓
+                            
+        except Exception as e:
+            # 不死鸟机制：捕获网络抖动，防止监控主线程崩溃
+            log_error(f"[-] 高频雷达网络抖动拦截成功: {e}")
+            
+        time.sleep(10) # 10 秒轮询一次，保护 IP 且满足实盘监控需求
+
+
+def run_schedule_loop(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
+    """后台定时任务慢速 AI 思考循环"""
     
     def job():
         # 如果不在交易时间，直接跳过 (实盘解除此注释)
@@ -94,15 +138,12 @@ def run_schedule_loop(hud: CyberpunkHUD):
            
         log_info(f"\n[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<")
         
-        # 利用线程池进行高并发处理 (Concurrent processing utilizing ThreadPoolExecutor)
-        # 默认最大工作线程数为 CPU 核心数 + 4，这里根据 TARGET_POOL 数量动态自适应
-        cpu_cores = os.cpu_count()
-        cpu_cores = cpu_cores if cpu_cores is not None else 4
-        max_workers = min(len(TARGET_POOL) or 1, cpu_cores + 4)
+        # ThreadPool 并发管理 (根据建议调整为保守策略)
+        max_workers = 2 # 设定为保守并流，防止大模型 API Rate Limit
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # 提交所有的独立标的任务到线程池 (Submit all independent symbol tasks)
-            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in TARGET_POOL] # type: ignore
+            # 提交所有的独立标的任务到线程池 (限制为前4支以匹配雷达)
+            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in TARGET_POOL[:4]] # type: ignore
             
             # 等待所有猎物扫描完毕 (Wait for all scanning tasks to finish)
             concurrent.futures.wait(futures)
@@ -142,13 +183,19 @@ if __name__ == "__main__":
     except Exception as e:
         log_error(f"[-] Web UI 启动失败，请手动执行 `streamlit run dashboard.py`。报错: {e}")
 
-    # 实例化赛博朋克 HUD (桌面右上角弹窗版)
-    hud = CyberpunkHUD()
+    # 实例化赛博朋克 HUD 矩阵雷达
+    hud = CyberpunkRadarHUD(max_slots=4)
+    risk_sys = LocalRiskController(initial_capital=100000.0)
     
-    # 将核心爬虫与决策逻辑放入独立守护线程，不卡死 UI
-    log_info("[*] 正在点火后台并发调度守护进程 (Daemon Thread)...")
-    worker_thread = Thread(target=run_schedule_loop, args=(hud,), daemon=True)
-    worker_thread.start()
+    # 线程 1: 启动高频急速监控雷达 (负责 10 秒级看盘与保命止损)
+    log_info("[*] 正在点火后台 10秒级 高频防灾雷达守护进程 (Tick Daemon)...")
+    tick_thread = Thread(target=fast_tick_monitor, args=(hud, risk_sys), daemon=True)
+    tick_thread.start()
+    
+    # 线程 2: 启动慢速大模型思考调度 (负责小时级宏观分析与建仓)
+    log_info("[*] 正在点火后台 小时级 并发思考守护进程 (Brain Daemon)...")
+    ai_thread = Thread(target=run_schedule_loop, args=(hud, risk_sys), daemon=True)
+    ai_thread.start()
     
     # 启动 GUI 主循环 (挂靠主线程)
     hud.start()
