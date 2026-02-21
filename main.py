@@ -166,27 +166,39 @@ def run_schedule_loop(hud: CyberpunkRadarHUD, risk_sys: LocalRiskController):
     global global_executor
     
     def job():
-        # 调试阶段强制放行：注释掉非交易时间的跳过逻辑
-        # if not is_trading_time(): 
-        #     log_info(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 当前非交易时间，跳过全盘扫描。")
-        #     return
-           
-        log_info(f"\n[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<")
-        
+        # 【脱离沙盘 1】恢复交易时间锁 (Trading Hours Guard - Production)
+        if not is_trading_time(): 
+            log_info(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 当前非交易时间，全盘扫描进入休眠。")
+            return
+
+        # 【脱离沙盘 2】动态构建真实猎杀名单合并硬编码与 Web UI 传入的动态标的
+        active_targets = list(TARGET_POOL)
+        if os.path.exists("watchlist.json"):
+            try:
+                with open("watchlist.json", "r", encoding="utf-8") as f:
+                    user_watchlist = json.load(f)
+                    if isinstance(user_watchlist, list):
+                        active_targets.extend(user_watchlist)
+            except Exception:
+                pass
+        # 去重，防止重复扫描
+        active_targets = list(set(active_targets))
+
+        log_info(f"\n[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] >>> 开启全盘并发扫描 (总索敌数量: {len(active_targets)}) <<<")
+
         # ThreadPool 并发管理 (根据建议调整为保守策略)
-        max_workers = 2 # 设定为保守并流，防止大模型 API Rate Limit
-        
+        max_workers = 2  # 保持并发数量防止 API 并发超限
+
         global global_executor
         global_executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-        
+
         with global_executor as executor:
-            # 提交所有的独立标的任务到线程池 (限制为前4支以匹配雷达)
-            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in TARGET_POOL[:4]] # type: ignore
-            
-            # 等待所有猎物扫描完毕 (Wait for all scanning tasks to finish)
+            # 【脱离沙盘 3】让 AI 真正分析所有自定义标的，而不仅仅是前 4 支！
+            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in active_targets]  # type: ignore
             concurrent.futures.wait(futures)
-            
+
         log_info("[+] 本轮全盘并发扫描已结束，系统进入休眠等待下一班车。")
+
 
     # 摒弃简单的轮询，改为硬编码的精准定时触发 (Precision Market Scheduling)
     # 紧贴 AkShare 60 分钟 K 线的收线时间进行触发，留出 2 分钟让数据落位

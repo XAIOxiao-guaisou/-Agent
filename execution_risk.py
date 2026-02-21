@@ -108,19 +108,37 @@ class LocalRiskController:
                 return True
             return False
         
-    def mock_buy(self, symbol: str, price: float, volume: int):
-        with self.lock: # 修改持仓字典也要上锁 (Lock memory dict update)
+    def execute_live_buy(self, symbol: str, price: float, volume: int):
+        """实盘买入执行钉子 (Live Buy Hook)
+        目前为本地落盘记录，下一步接驳券商 API
+        """
+        with self.lock:  # 修改持仓字典也要上锁
             self.positions[symbol] = {
                 "cost_price": price,
                 "volume": volume,
                 "highest_price": price
             }
-        self.save_positions() # 每次买入后立刻落盘记忆
-        log_info(f"   => [状态已落盘] 买入 {symbol} {volume}股 @ {price}")
+        self.save_positions()  # 每次买入后立刻落盘记忆
+        log_info(f"   => [实盘订单生成] 成功买入 {symbol} {volume}股 @ {price}")
+        # TODO: Phase 19 -> 此处调用 Interactive Brokers / 富涂 OpenAPI 发送真实市价单
+        # from broker_api import place_order
+        # place_order(symbol=symbol, action='BUY', qty=volume, order_type='MKT')
 
-    def mock_sell_all(self, symbol: str):
-        with self.lock: # 卖出清理也上锁
+    def execute_live_sell_all(self, symbol: str):
+        """实盘清仓执行钉子 (Live Sell All Hook)
+        目前为本地落盘记录，下一步接驳券商 API
+        """
+        with self.lock:  # 卖出清理也上锁
             if symbol in self.positions:
                 self.positions.pop(symbol, None)
-        self.save_positions() # 卖出后清空该标的记忆
-        log_info(f"   => [状态已落盘] 清仓 {symbol}")
+        self.save_positions()  # 卖出后清空该标的记忆
+        log_info(f"   => [实盘订单生成] 清仓 {symbol}")
+        # TODO: Phase 19 -> 此处调用 Interactive Brokers / 富涂 OpenAPI 发送市价卖出单
+        # from broker_api import place_order
+        # place_order(symbol=symbol, action='SELL', qty='ALL', order_type='MKT')
+
+    # 向前兼容别名 (Backward Compatibility Aliases)
+    # 旧代码如果调用 mock_buy/mock_sell_all 仍将正常工作
+    mock_buy = execute_live_buy
+    mock_sell_all = execute_live_sell_all
+
