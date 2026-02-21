@@ -6,12 +6,12 @@ import subprocess
 import concurrent.futures
 from debug_sentinel import log_info, log_error, log_warn
 
-# 引入我们打磨好的所有模块
-from config import setup_global_proxy
-from data_harvester import TARGET_POOL, fetch_and_clean_kline_data, fetch_sentiment_news
-from deepseek_brain import ask_deepseek
-from execution_risk import LocalRiskController
-from monitor_hud import CyberpunkHUD, send_mobile_notification
+# 引入我们打磨好的所有模块并屏蔽 IDE 环境尚未识别到的本地包爆红 (Suppress IDE import false-alarms)
+from config import setup_global_proxy  # type: ignore
+from data_harvester import TARGET_POOL, fetch_and_clean_kline_data, fetch_sentiment_news  # type: ignore
+from deepseek_brain import ask_deepseek  # type: ignore
+from execution_risk import LocalRiskController  # type: ignore
+from monitor_hud import CyberpunkHUD, send_mobile_notification  # type: ignore
 
 # ==========================================
 # Phase 7: Main Daemon (总线调度器)
@@ -29,8 +29,14 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
     """单只股票的 [感知 -> 思考 -> 风控执行] 完整生命周期"""
     hud.update_status(symbol, "SCANNING...")
     
-    # 1. 启动感知层获取数据
-    df = fetch_and_clean_kline_data(symbol, period="60")
+    # 1. 并发启动感知层获取 K线数据 和 新闻情绪数据 (Parallelized network fetching to halve latency)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        kline_future = executor.submit(fetch_and_clean_kline_data, symbol, "60")
+        news_future = executor.submit(fetch_sentiment_news, symbol)
+        
+        df = kline_future.result()
+        news_list = news_future.result()
+        
     if df is None or df.empty: 
         return
         
@@ -44,8 +50,7 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
         risk_sys.mock_sell_all(symbol)
         return
 
-    # 获取市场新闻弹药
-    news_list = fetch_sentiment_news(symbol)
+    # 从并发获取的结果中提取数据
     market_data_snapshot = {
         "current_price": current_price,
         "RSI_14": current_rsi,
@@ -87,11 +92,13 @@ def run_schedule_loop(hud: CyberpunkHUD):
         
         # 利用线程池进行高并发处理 (Concurrent processing utilizing ThreadPoolExecutor)
         # 默认最大工作线程数为 CPU 核心数 + 4，这里根据 TARGET_POOL 数量动态自适应
-        max_workers = min(len(TARGET_POOL) or 1, os.cpu_count() + 4) if hasattr(os, 'cpu_count') else 4
+        cpu_cores = os.cpu_count()
+        cpu_cores = cpu_cores if cpu_cores is not None else 4
+        max_workers = min(len(TARGET_POOL) or 1, cpu_cores + 4)
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             # 提交所有的独立标的任务到线程池 (Submit all independent symbol tasks)
-            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in TARGET_POOL]
+            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in TARGET_POOL] # type: ignore
             
             # 等待所有猎物扫描完毕 (Wait for all scanning tasks to finish)
             concurrent.futures.wait(futures)

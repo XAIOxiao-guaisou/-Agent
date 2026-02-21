@@ -113,6 +113,6 @@ class LocalRiskController:
     def mock_sell_all(self, symbol: str):
         with self.lock: # 卖出清理也上锁
             if symbol in self.positions:
-                del self.positions[symbol]
+                self.positions.pop(symbol, None)
         self.save_positions() # 卖出后清空该标的记忆
         log_info(f"   => [状态已落盘] 清仓 {symbol}")
