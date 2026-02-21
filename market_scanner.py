@@ -177,27 +177,52 @@ def atomic_inject_watchlist(df_top20):
     except Exception as e:
         print(f"[-] 写入 watchlist 失败: {e}")
 
-if __name__ == "__main__":
-    # 配置环境提示
-    print("="*60)
-    print("🚀 DeepSeek Quant - 市场全景选股雷达启动")
-    print("💡 最佳执行时间提示：请确保在每个交易日下午 16:15 港股完全收盘后运行此脚本。")
-    print("💡 盘中运行由于日线 K 线仍在变动，会产生严重分析误差！")
-    print("="*60)
-    
-    # 引用你之前的全局代理，保证 AkShare 网络畅通
-    # setup_global_proxy() # 调试阶段注释掉，防止代理服务未启动时报错
-    
+def scheduled_job():
+    """Unattended scheduled execution (no interactive prompts)"""
+    ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"\n[{ts}] Timed trigger! Running post-close stock screener...")
     top20_data = run_scanner()
     if not top20_data.empty:
-        print("\n--- Top 5 潜力股数据 ---")
-        print(top20_data[['名称', '代码', '7日涨幅(%)', 'RSI_14', '放量比', '综合看好得分']].head(5))
+        print(top20_data[['\u540d\u79f0', '\u4ee3\u7801', '7\u65e5\u6da8\u5e45(%)', 'RSI_14', '\u653e\u91cf\u6bd4', '\u7efc\u5408\u770b\u597d\u5f97\u5206']].head(5))
         plot_top_20(top20_data)
-        
-        # 询问用户是否注入后台防御体系
-        ans = input("\n[?] 是否自动将 Top 5 获取的潜力股注入后台极速雷达进行盯盘？(Y/N/Enter默认同意): ")
-        if ans.upper() in ["Y", "", "YES"]:
-            atomic_inject_watchlist(top20_data)
-            print("[+] 系统无缝闭环已完成。请打开 Dashboard 观察变化。")
+        atomic_inject_watchlist(top20_data)  # auto-inject, no prompt
+        print("[+] Scheduled scan done. Top 5 auto-injected into watchlist.json.")
     else:
-        print("[-] 未能扫描到符合条件的股票。或者网络存在致命故障。")
+        print("[-] No qualifying stocks found. Market may be closed or network error.")
+
+if __name__ == "__main__":
+    import sys
+    is_schedule_mode = "--schedule" in sys.argv
+
+    print("="*60)
+    print("DeepSeek Quant Market Scanner")
+    if is_schedule_mode:
+        print("Mode: Daily Timed Daemon  (auto-scan every weekday at 16:18)")
+    else:
+        print("Mode: Single-Shot Interactive Scan")
+    print("="*60)
+
+    if is_schedule_mode:
+        import schedule as _sch  # type: ignore
+        SCAN_TIME = "16:18"
+        for _day in [_sch.every().monday, _sch.every().tuesday, _sch.every().wednesday,
+                     _sch.every().thursday, _sch.every().friday]:
+            _day.at(SCAN_TIME).do(scheduled_job)
+        print(f"[*] Daemon started! Will scan every weekday at {SCAN_TIME}. Press Ctrl+C to exit.")
+        while True:
+            _sch.run_pending()
+            time.sleep(30)
+    else:
+        # Interactive single-shot mode
+        top20_data = run_scanner()
+        if not top20_data.empty:
+            print(top20_data[['\u540d\u79f0', '\u4ee3\u7801', '7\u65e5\u6da8\u5e45(%)', 'RSI_14', '\u653e\u91cf\u6bd4', '\u7efc\u5408\u770b\u597d\u5f97\u5206']].head(5))
+            plot_top_20(top20_data)
+            ans = input("\n[?] Auto-inject Top 5 into watchlist.json for live radar? (Y/Enter=Yes / N): ")
+            if ans.upper() in ["Y", "", "YES"]:
+                atomic_inject_watchlist(top20_data)
+                print("[+] Closed-loop complete. Live radar is now tracking Top 5.")
+        else:
+            print("[-] No qualifying stocks found.")
+
+
