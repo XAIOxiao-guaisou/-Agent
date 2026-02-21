@@ -2,6 +2,7 @@ import time
 import schedule
 from threading import Thread
 import datetime
+import subprocess
 
 # 引入我们打磨好的所有模块
 from config import setup_global_proxy
@@ -103,12 +104,26 @@ def run_schedule_loop(hud: CyberpunkHUD):
 if __name__ == "__main__":
     setup_global_proxy()
     
-    # 实例化赛博朋克 UI
+    # 自动拉起 Streamlit Web UI 监控中心 (Auto-launch Streamlit Web UI)
+    print("\n[+] 正在后台启动 Streamlit 赛博指挥中心...")
+    try:
+        # 使用 subprocess 从独立的虚拟环境进程启动 dashboard
+        # stderr/stdout 定向到 DEVNULL 避免污染主控制台的输出
+        subprocess.Popen(
+            [r".\venv\Scripts\streamlit.exe", "run", "dashboard.py"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        print("[+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。")
+    except Exception as e:
+        print(f"[-] Web UI 启动失败，请手动执行 `streamlit run dashboard.py`。报错: {e}")
+
+    # 实例化赛博朋克 HUD (桌面右上角弹窗版)
     hud = CyberpunkHUD()
     
     # 将核心爬虫与决策逻辑放入独立守护线程，不卡死 UI
     worker_thread = Thread(target=run_schedule_loop, args=(hud,), daemon=True)
     worker_thread.start()
     
-    # 启动 UI 主循环
+    # 启动 GUI 主循环 (挂靠主线程)
     hud.start()
