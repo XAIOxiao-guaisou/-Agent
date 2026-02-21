@@ -111,18 +111,23 @@ def fetch_sentiment_news(symbol: str) -> list:
     
     news_list = []
     try:
-        # 在此使用 AkShare 的新闻接口，或者预留 Playwright 爬虫接口
-        # 为了演示，这里我们使用 AkShare 的个股新闻接口 (以新浪港股新闻为例)
-        # 实际情况可能需要针对财联社或雪球单独编写 DOM 解析爬虫
-        news_df = ak.stock_hk_spot_em()
-        # 这里仅作流程上的弹药收集整合示意，将根据需要调用具体新闻源
-        # (This is a simplified representation of gathering the news ammo)
-        news_list = [f"测试新闻 1: {symbol} 获南向资金大幅净买入", f"测试新闻 2: 机构评级上调 {symbol}"]
-        print(f"[+] {symbol} 情绪收集完毕，共获取 {len(news_list)} 条弹药。")
+        # 实际使用 AkShare 的个股新闻接口 (东方财富数据源)
+        # Use AkShare's individual stock news interface (Eastmoney data source)
+        news_df = ak.stock_news_em(symbol=symbol)
         
+        if news_df is not None and not news_df.empty:
+            # 提取前 5 条最新新闻的标题作为大模型的情绪弹药
+            # Extract the 5 most recent news headlines as sentiment ammunition for the LLM
+            # 注意: 不同版本的 AkShare 返回列名可能存在差异，通常包含 '新闻标题'
+            titles = news_df['新闻标题'].head(5).tolist()
+            news_list = [f"【市场新闻】{title}" for title in titles]
+            print(f"[+] {symbol} 情绪收集完毕，共获取 {len(news_list)} 条真实新闻弹药。")
+        else:
+            print(f"[-] {symbol} 未抓取到有效新闻，弹药库为空。")
+            
         return news_list
     except Exception as e:
-        print(f"[-] 获取 {symbol} 情绪数据失败: {str(e)}")
+        print(f"[-] 获取 {symbol} 真新闻数据失败: {str(e)}")
         return []
 
 if __name__ == "__main__":
