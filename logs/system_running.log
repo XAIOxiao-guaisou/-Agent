@@ -1,0 +1,128 @@
+[2026-02-21 16:43:01] [ INFO  ] [debug_sentinel.py:60] - 
+[+] 正在后台启动 Streamlit 赛博指挥中心...
+[2026-02-21 16:43:01] [ INFO  ] [debug_sentinel.py:60] - [+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。
+[2026-02-21 16:43:01] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台并发调度守护进程 (Daemon Thread)...
+[2026-02-21 16:43:01] [ INFO  ] [debug_sentinel.py:60] - [16:43:01] 当前非交易时间，跳过全盘扫描。
+[2026-02-21 16:43:35] [ INFO  ] [debug_sentinel.py:60] - 
+[+] 正在后台启动 Streamlit 赛博指挥中心...
+[2026-02-21 16:43:35] [ INFO  ] [debug_sentinel.py:60] - [+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。
+[2026-02-21 16:43:35] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台并发调度守护进程 (Daemon Thread)...
+[2026-02-21 16:43:35] [ INFO  ] [debug_sentinel.py:60] - 
+[2026-02-21 16:43:35] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<
+[2026-02-21 16:43:35] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 00700 的 60 分钟级别感知数据...
+[2026-02-21 16:43:35] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 09988 的 60 分钟级别感知数据...
+[2026-02-21 16:43:35] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 03690 的 60 分钟级别感知数据...
+[2026-02-21 16:43:37] [ ERROR ] [debug_sentinel.py:68] - [-] 数据收割失败 (09988): HTTPSConnectionPool(host='push2his.eastmoney.com', port=443): Max retries exceeded with url: /api/qt/stock/kline/get?fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61&ut=bd1d9ddb04089700cf9c27f6f7426281&klt=60&fqt=1&secid=116.09988&beg=0&end=20500000 (Caused by ProxyError('Unable to connect to proxy', NewConnectionError("HTTPSConnection(host='127.0.0.1', port=7890): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。")))
+[2026-02-21 16:43:37] [ ERROR ] [debug_sentinel.py:68] - [-] 数据收割失败 (00700): HTTPSConnectionPool(host='push2his.eastmoney.com', port=443): Max retries exceeded with url: /api/qt/stock/kline/get?fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61&ut=bd1d9ddb04089700cf9c27f6f7426281&klt=60&fqt=1&secid=116.00700&beg=0&end=20500000 (Caused by ProxyError('Unable to connect to proxy', NewConnectionError("HTTPSConnection(host='127.0.0.1', port=7890): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。")))
+[2026-02-21 16:43:37] [ ERROR ] [debug_sentinel.py:68] - [-] 数据收割失败 (03690): HTTPSConnectionPool(host='push2his.eastmoney.com', port=443): Max retries exceeded with url: /api/qt/stock/kline/get?fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61&ut=bd1d9ddb04089700cf9c27f6f7426281&klt=60&fqt=1&secid=116.03690&beg=0&end=20500000 (Caused by ProxyError('Unable to connect to proxy', NewConnectionError("HTTPSConnection(host='127.0.0.1', port=7890): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。")))
+[2026-02-21 16:43:40] [ ERROR ] [debug_sentinel.py:68] - [-] 获取 09988 真新闻数据失败: Failed to perform, curl: (7) Failed to connect to 127.0.0.1 port 7890 after 2038 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+[2026-02-21 16:43:42] [ ERROR ] [debug_sentinel.py:68] - [-] 获取 00700 真新闻数据失败: Failed to perform, curl: (7) Failed to connect to 127.0.0.1 port 7890 after 2037 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+[2026-02-21 16:43:42] [ ERROR ] [debug_sentinel.py:68] - [-] 获取 03690 真新闻数据失败: Failed to perform, curl: (7) Failed to connect to 127.0.0.1 port 7890 after 2021 ms: Could not connect to server. See https://curl.se/libcurl/c/libcurl-errors.html first for more details.
+[2026-02-21 16:43:42] [ INFO  ] [debug_sentinel.py:60] - [+] 本轮全盘并发扫描已结束，系统进入休眠等待下一班车。
+[2026-02-21 17:09:05] [ INFO  ] [debug_sentinel.py:60] - 
+[+] 正在后台启动 Streamlit 赛博指挥中心...
+[2026-02-21 17:09:05] [ INFO  ] [debug_sentinel.py:60] - [+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。
+[2026-02-21 17:09:05] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 10秒级 高频防灾雷达守护进程 (Tick Daemon)...
+[2026-02-21 17:09:05] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 小时级 并发思考守护进程 (Brain Daemon)...
+[2026-02-21 17:09:05] [ INFO  ] [debug_sentinel.py:60] - [17:09:05] 当前非交易时间，跳过全盘扫描。
+[2026-02-21 17:11:33] [ INFO  ] [debug_sentinel.py:60] - 
+[+] 正在后台启动 Streamlit 赛博指挥中心...
+[2026-02-21 17:11:33] [ INFO  ] [debug_sentinel.py:60] - [+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。
+[2026-02-21 17:11:33] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 10秒级 高频防灾雷达守护进程 (Tick Daemon)...
+[2026-02-21 17:11:33] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 小时级 并发思考守护进程 (Brain Daemon)...
+[2026-02-21 17:11:33] [ INFO  ] [debug_sentinel.py:60] - 
+[2026-02-21 17:11:33] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<
+[2026-02-21 17:11:33] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 00700 的 60 分钟级别感知数据...
+[2026-02-21 17:11:33] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 03690 的 60 分钟级别感知数据...
+[2026-02-21 17:11:35] [ ERROR ] [debug_sentinel.py:68] - [-] 数据收割失败 (03690): HTTPSConnectionPool(host='push2his.eastmoney.com', port=443): Max retries exceeded with url: /api/qt/stock/kline/get?fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61&ut=bd1d9ddb04089700cf9c27f6f7426281&klt=60&fqt=1&secid=116.03690&beg=0&end=20500000 (Caused by ProxyError('Unable to connect to proxy', NewConnectionError("HTTPSConnection(host='127.0.0.1', port=7890): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。")))
+[2026-02-21 17:11:36] [ ERROR ] [debug_sentinel.py:68] - [-] 数据收割失败 (00700): HTTPSConnectionPool(host='push2his.eastmoney.com', port=443): Max retries exceeded with url: /api/qt/stock/kline/get?fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61&ut=bd1d9ddb04089700cf9c27f6f7426281&klt=60&fqt=1&secid=116.00700&beg=0&end=20500000 (Caused by ProxyError('Unable to connect to proxy', NewConnectionError("HTTPSConnection(host='127.0.0.1', port=7890): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。")))
+[2026-02-21 17:11:38] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 09988 的 60 分钟级别感知数据...
+[2026-02-21 17:11:40] [ ERROR ] [debug_sentinel.py:68] - [-] 数据收割失败 (09988): HTTPSConnectionPool(host='push2his.eastmoney.com', port=443): Max retries exceeded with url: /api/qt/stock/kline/get?fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58%2Cf59%2Cf60%2Cf61&ut=bd1d9ddb04089700cf9c27f6f7426281&klt=60&fqt=1&secid=116.09988&beg=0&end=20500000 (Caused by ProxyError('Unable to connect to proxy', NewConnectionError("HTTPSConnection(host='127.0.0.1', port=7890): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。")))
+[2026-02-21 17:11:44] [ INFO  ] [debug_sentinel.py:60] - [+] 本轮全盘并发扫描已结束，系统进入休眠等待下一班车。
+[2026-02-21 17:11:45] [ ERROR ] [debug_sentinel.py:68] - [-] 高频雷达网络抖动拦截成功: HTTPSConnectionPool(host='72.push2.eastmoney.com', port=443): Max retries exceeded with url: /api/qt/clist/get?pn=1&pz=100&po=1&np=1&ut=bd1d9ddb04089700cf9c27f6f7426281&fltt=2&invt=2&fid=f12&fs=m%3A128+t%3A3%2Cm%3A128+t%3A4%2Cm%3A128+t%3A1%2Cm%3A128+t%3A2&fields=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6%2Cf7%2Cf8%2Cf9%2Cf10%2Cf12%2Cf13%2Cf14%2Cf15%2Cf16%2Cf17%2Cf18%2Cf20%2Cf21%2Cf23%2Cf24%2Cf25%2Cf22%2Cf11%2Cf62%2Cf128%2Cf136%2Cf115%2Cf152 (Caused by ProxyError('Unable to connect to proxy', NewConnectionError("HTTPSConnection(host='127.0.0.1', port=7890): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。")))
+[2026-02-21 17:12:36] [ INFO  ] [debug_sentinel.py:60] - 
+[+] 正在后台启动 Streamlit 赛博指挥中心...
+[2026-02-21 17:12:36] [ INFO  ] [debug_sentinel.py:60] - [+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。
+[2026-02-21 17:12:36] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 10秒级 高频防灾雷达守护进程 (Tick Daemon)...
+[2026-02-21 17:12:36] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 小时级 并发思考守护进程 (Brain Daemon)...
+[2026-02-21 17:12:36] [ INFO  ] [debug_sentinel.py:60] - 
+[2026-02-21 17:12:36] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<
+[2026-02-21 17:12:36] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 00700 的 60 分钟级别感知数据...
+[2026-02-21 17:12:36] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 03690 的 60 分钟级别感知数据...
+[2026-02-21 17:12:37] [ INFO  ] [debug_sentinel.py:60] - [+] 00700 收割完成: 获取到 122 根清洗过的高质量 K 线。
+[2026-02-21 17:12:37] [ INFO  ] [debug_sentinel.py:60] - [+] 03690 收割完成: 获取到 122 根清洗过的高质量 K 线。
+[2026-02-21 17:12:39] [ INFO  ] [debug_sentinel.py:60] - [*] 正在向 DeepSeek (模型: deepseek-reasoner) 请求 00700 的决策...
+[2026-02-21 17:12:39] [ INFO  ] [debug_sentinel.py:60] - [*] 正在向 DeepSeek (模型: deepseek-reasoner) 请求 03690 的决策...
+[2026-02-21 17:12:39] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 1/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:39] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:39] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 1/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:39] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 2/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 2/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 3/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 3/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [!!!] 00700 决策环节彻底熔断，触发本地防御机制，强制要求 HOLD。
+[2026-02-21 17:12:40] [ ERROR ] [debug_sentinel.py:68] - [!!!] 03690 决策环节彻底熔断，触发本地防御机制，强制要求 HOLD。
+[2026-02-21 17:12:40] [ INFO  ] [debug_sentinel.py:60] - [!] 触发 00700 风控拦截器 -> AI: HOLD | RSI: 41.18
+[2026-02-21 17:12:40] [ INFO  ] [debug_sentinel.py:60] - [!] 触发 03690 风控拦截器 -> AI: HOLD | RSI: 42.42
+[2026-02-21 17:12:40] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 09988 的 60 分钟级别感知数据...
+[2026-02-21 17:12:41] [ INFO  ] [debug_sentinel.py:60] - [+] 09988 收割完成: 获取到 122 根清洗过的高质量 K 线。
+[2026-02-21 17:12:43] [ INFO  ] [debug_sentinel.py:60] - [*] 正在向 DeepSeek (模型: deepseek-reasoner) 请求 09988 的决策...
+[2026-02-21 17:12:43] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 1/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:43] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:44] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 2/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:44] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:44] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 3/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:12:44] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:12:44] [ ERROR ] [debug_sentinel.py:68] - [!!!] 09988 决策环节彻底熔断，触发本地防御机制，强制要求 HOLD。
+[2026-02-21 17:12:44] [ INFO  ] [debug_sentinel.py:60] - [!] 触发 09988 风控拦截器 -> AI: HOLD | RSI: 24.00
+[2026-02-21 17:12:44] [ INFO  ] [debug_sentinel.py:60] - [+] 本轮全盘并发扫描已结束，系统进入休眠等待下一班车。
+[2026-02-21 17:25:09] [ INFO  ] [debug_sentinel.py:60] - 
+[+] 正在后台启动 Streamlit 赛博指挥中心...
+[2026-02-21 17:25:09] [ INFO  ] [debug_sentinel.py:60] - [+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。
+[2026-02-21 17:25:10] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 10秒级 高频防灾雷达守护进程 (Tick Daemon)...
+[2026-02-21 17:25:10] [ INFO  ] [debug_sentinel.py:60] - [*] 正在点火后台 小时级 并发思考守护进程 (Brain Daemon)...
+[2026-02-21 17:25:10] [ INFO  ] [debug_sentinel.py:60] - 
+[2026-02-21 17:25:10] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<
+[2026-02-21 17:25:10] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 00700 的 60 分钟级别感知数据...
+[2026-02-21 17:25:10] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 03690 的 60 分钟级别感知数据...
+[2026-02-21 17:25:10] [ INFO  ] [debug_sentinel.py:60] - [+] 00700 收割完成: 获取到 122 根清洗过的高质量 K 线。
+[2026-02-21 17:25:10] [ INFO  ] [debug_sentinel.py:60] - [+] 03690 收割完成: 获取到 119 根清洗过的高质量 K 线。
+[2026-02-21 17:25:14] [ INFO  ] [debug_sentinel.py:60] - [*] 正在向 DeepSeek (模型: deepseek-reasoner) 请求 03690 的决策...
+[2026-02-21 17:25:15] [ INFO  ] [debug_sentinel.py:60] - [*] 正在向 DeepSeek (模型: deepseek-reasoner) 请求 00700 的决策...
+[2026-02-21 17:25:15] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 1/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:15] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:15] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 1/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:15] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:15] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 2/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:15] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 2/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 3/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [!!!] 03690 决策环节彻底熔断，触发本地防御机制，强制要求 HOLD。
+[2026-02-21 17:25:16] [ INFO  ] [debug_sentinel.py:60] - [!] 触发 03690 风控拦截器 -> AI: HOLD | RSI: 42.42
+[2026-02-21 17:25:16] [ INFO  ] [debug_sentinel.py:60] - [*] 正在拉取 09988 的 60 分钟级别感知数据...
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 3/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:16] [ ERROR ] [debug_sentinel.py:68] - [!!!] 00700 决策环节彻底熔断，触发本地防御机制，强制要求 HOLD。
+[2026-02-21 17:25:16] [ INFO  ] [debug_sentinel.py:60] - [!] 触发 00700 风控拦截器 -> AI: HOLD | RSI: 41.18
+[2026-02-21 17:25:16] [ INFO  ] [debug_sentinel.py:60] - [+] 09988 收割完成: 获取到 122 根清洗过的高质量 K 线。
+[2026-02-21 17:25:21] [ INFO  ] [debug_sentinel.py:60] - [*] 正在向 DeepSeek (模型: deepseek-reasoner) 请求 09988 的决策...
+[2026-02-21 17:25:22] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 1/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:22] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:23] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 2/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:23] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:23] [ ERROR ] [debug_sentinel.py:68] - [-] 尝试 3/3 失败: API 请求失败或网络错误 - 401 Client Error: Unauthorized for url: https://api.deepseek.com/chat/completions
+[2026-02-21 17:25:23] [ ERROR ] [debug_sentinel.py:68] - [-] API 响应状态码: 401, 响应内容: Authentication Fails (auth header format should be Bearer sk-...)
+[2026-02-21 17:25:23] [ ERROR ] [debug_sentinel.py:68] - [!!!] 09988 决策环节彻底熔断，触发本地防御机制，强制要求 HOLD。
+[2026-02-21 17:25:23] [WARNING] [debug_sentinel.py:64] - 
+[!] 收到外界中断指令 (KeyboardInterrupt)！系统正在执行优雅退出流水线...
+[2026-02-21 17:25:23] [ INFO  ] [debug_sentinel.py:60] - [*] 正在关闭底层 ThreadPoolExecutor，等待所有任务排空...
+[2026-02-21 17:25:24] [ INFO  ] [debug_sentinel.py:60] - [+] 本轮全盘并发扫描已结束，系统进入休眠等待下一班车。
+[2026-02-21 17:25:24] [ INFO  ] [debug_sentinel.py:60] - [*] 正在最后一次安全核对内存状态与硬盘状态...
+[2026-02-21 17:25:24] [ INFO  ] [debug_sentinel.py:60] - [+] 量化交易系统安全停机保护完成。主进程退出。
