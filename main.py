@@ -1,10 +1,10 @@
 import time
-import schedule
+import schedule # type: ignore
 from threading import Thread
 import datetime
 import subprocess
 import concurrent.futures
-from debug_sentinel import log_info, log_error, log_warn
+from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # 引入我们打磨好的所有模块并屏蔽 IDE 环境尚未识别到的本地包爆红 (Suppress IDE import false-alarms)
 from config import setup_global_proxy  # type: ignore
@@ -39,9 +39,13 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
         
     if df is None or df.empty: 
         return
-        
-    current_price = df.iloc[-1]['收盘']
-    current_rsi = df.iloc[-1]['RSI_14']
+    
+    # 向 IDE 声明 df 此时绝对不为 None，消除报警
+    assert df is not None 
+
+    current_price = float(df.iloc[-1]['收盘'])
+    current_rsi = float(df.iloc[-1]['RSI_14'])
+    macd_hist = float(df.iloc[-1]['MACD_HIST'])
     
     # 2. 风控前置：检查是否触发割肉/止盈警报
     if risk_sys.monitor_dynamic_stop_loss(symbol, current_price):
@@ -54,7 +58,7 @@ def single_target_cycle(symbol: str, risk_sys: LocalRiskController, hud: Cyberpu
     market_data_snapshot = {
         "current_price": current_price,
         "RSI_14": current_rsi,
-        "MACD_HIST": df.iloc[-1]['MACD_HIST']
+        "MACD_HIST": macd_hist
     }
 
     # 3. 呼叫 DeepSeek 决策大脑

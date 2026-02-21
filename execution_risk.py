@@ -1,7 +1,7 @@
 import json
 import os
 import threading
-from debug_sentinel import log_info, log_error, log_warn
+from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # ==========================================
 # Phase 4/10 Update: Execution Layer (Thread-Safe Risk Control with Logging)

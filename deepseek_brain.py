@@ -1,9 +1,9 @@
 import json
 import re
 import os
-import requests
-from config import setup_global_proxy
-from debug_sentinel import log_info, log_error, log_warn
+import requests # type: ignore
+from config import setup_global_proxy # type: ignore
+from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # ==========================================
 # Phase 3: Decision Layer (DeepSeek Brain Integration)

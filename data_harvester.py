@@ -1,11 +1,11 @@
-import pandas as pd
-import akshare as ak
+import pandas as pd # type: ignore
+import akshare as ak # type: ignore
 from base64 import b64encode
 import datetime
 import time
 import random
-from config import setup_global_proxy
-from debug_sentinel import log_info, log_error, log_warn
+from config import setup_global_proxy # type: ignore
+from debug_sentinel import log_info, log_error, log_warn # type: ignore
 
 # ==========================================
 # Phase 2: Perception Layer (Data Harvester)
