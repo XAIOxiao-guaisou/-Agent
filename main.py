@@ -3,6 +3,8 @@ import schedule
 from threading import Thread
 import datetime
 import subprocess
+import concurrent.futures
+from debug_sentinel import log_info, log_error, log_warn
 
 # 引入我们打磨好的所有模块
 from config import setup_global_proxy
@@ -78,13 +80,23 @@ def run_schedule_loop(hud: CyberpunkHUD):
     def job():
         # 如果不在交易时间，直接跳过 (实盘解除此注释)
         if not is_trading_time(): 
-            print(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 当前非交易时间，跳过全盘扫描。")
+            log_info(f"[{datetime.datetime.now().strftime('%H:%M:%S')}] 当前非交易时间，跳过全盘扫描。")
             return
            
-        print(f"\n[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] >>> 开启新一轮全盘扫描 <<<")
-        for symbol in TARGET_POOL:
-            single_target_cycle(symbol, risk_sys, hud)
-            time.sleep(3) # 缓冲间隔，防封禁
+        log_info(f"\n[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] >>> 开启新一轮全盘并发扫描 (MAX_THREADS) <<<")
+        
+        # 利用线程池进行高并发处理 (Concurrent processing utilizing ThreadPoolExecutor)
+        # 默认最大工作线程数为 CPU 核心数 + 4，这里根据 TARGET_POOL 数量动态自适应
+        max_workers = min(len(TARGET_POOL) or 1, os.cpu_count() + 4) if hasattr(os, 'cpu_count') else 4
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # 提交所有的独立标的任务到线程池 (Submit all independent symbol tasks)
+            futures = [executor.submit(single_target_cycle, symbol, risk_sys, hud) for symbol in TARGET_POOL]
+            
+            # 等待所有猎物扫描完毕 (Wait for all scanning tasks to finish)
+            concurrent.futures.wait(futures)
+            
+        log_info("[+] 本轮全盘并发扫描已结束，系统进入休眠等待下一班车。")
 
     # 摒弃简单的轮询，改为硬编码的精准定时触发 (Precision Market Scheduling)
     # 紧贴 AkShare 60 分钟 K 线的收线时间进行触发，留出 2 分钟让数据落位
@@ -102,10 +114,11 @@ def run_schedule_loop(hud: CyberpunkHUD):
         time.sleep(1)
 
 if __name__ == "__main__":
+    import os # Add missing os import for cpu_count
     setup_global_proxy()
     
     # 自动拉起 Streamlit Web UI 监控中心 (Auto-launch Streamlit Web UI)
-    print("\n[+] 正在后台启动 Streamlit 赛博指挥中心...")
+    log_info("\n[+] 正在后台启动 Streamlit 赛博指挥中心...")
     try:
         # 使用 subprocess 从独立的虚拟环境进程启动 dashboard
         # stderr/stdout 定向到 DEVNULL 避免污染主控制台的输出
@@ -114,14 +127,15 @@ if __name__ == "__main__":
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        print("[+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。")
+        log_info("[+] Web UI 启动指令已发送! 您可以通过浏览器访问 http://localhost:8501 查看大屏。")
     except Exception as e:
-        print(f"[-] Web UI 启动失败，请手动执行 `streamlit run dashboard.py`。报错: {e}")
+        log_error(f"[-] Web UI 启动失败，请手动执行 `streamlit run dashboard.py`。报错: {e}")
 
     # 实例化赛博朋克 HUD (桌面右上角弹窗版)
     hud = CyberpunkHUD()
     
     # 将核心爬虫与决策逻辑放入独立守护线程，不卡死 UI
+    log_info("[*] 正在点火后台并发调度守护进程 (Daemon Thread)...")
     worker_thread = Thread(target=run_schedule_loop, args=(hud,), daemon=True)
     worker_thread.start()
     

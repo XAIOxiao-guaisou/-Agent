@@ -3,6 +3,7 @@ import re
 import os
 import requests
 from config import setup_global_proxy
+from debug_sentinel import log_info, log_error, log_warn
 
 # ==========================================
 # Phase 3: Decision Layer (DeepSeek Brain Integration)
@@ -86,14 +87,14 @@ Based strictly on this data, provide your JSON decision.
         "temperature": 0.1 # 降低温度，减少幻觉 (Lower temperature to reduce hallucinations)
     }
 
-    print(f"[*] 正在向 DeepSeek 云端大脑发送 {symbol} 的决策请求...")
+    log_info(f"[*] 正在向 DeepSeek (模型: {MODEL_NAME}) 请求 {symbol} 的决策...")
 
     for attempt in range(1, retry_count + 1):
         try:
             # 发送请求 (发送到底层 Requests 时会自动走 config.py 中挂载的代理)
             # Send request (will automatically use the proxy mounted in config.py)
             response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
+            response.raise_for_status() # 这会捕获非2xx状态码的错误
             
             # 提取大模型的原始回复
             raw_content = response.json()['choices'][0]['message']['content']
@@ -110,15 +111,23 @@ Based strictly on this data, provide your JSON decision.
             if "action" not in decision or decision["action"] not in ["BUY", "SELL", "HOLD"]:
                 raise ValueError("JSON 缺少 action 字段或内容不合法")
                 
-            print(f"[+] 决策成功解析: {decision['action']} (Attempt {attempt})")
+            log_info(f"[+] DeepSeek 决策成功: {decision.get('action')} - {decision.get('reason')} (尝试 {attempt}/{retry_count})")
             return decision
 
+        except json.JSONDecodeError as e:
+            log_error(f"[-] 尝试 {attempt}/{retry_count} 失败: 大模型返回的不是合法 JSON 格式。错误: {e}")
+        except requests.exceptions.RequestException as e:
+            log_error(f"[-] 尝试 {attempt}/{retry_count} 失败: API 请求失败或网络错误 - {e}")
+            if response is not None:
+                log_error(f"[-] API 响应状态码: {response.status_code}, 响应内容: {response.text}")
+        except ValueError as e:
+            log_error(f"[-] 尝试 {attempt}/{retry_count} 失败: 决策 JSON 校验失败 - {e}")
         except Exception as e:
-            print(f"[-] 尝试 {attempt}/{retry_count} 失败: {str(e)}")
-            if attempt == retry_count:
-                # 触发回退逻辑防线 (Trigger fallback logic defense)
-                print(f"[!] 警告: 达到最大重试次数，触发默认防崩溃回退逻辑 (HOLD)！")
-                return {"action": "HOLD", "reason": f"API_ERROR_OR_PARSE_FAILED: {str(e)}"}
+            log_error(f"[-] 尝试 {attempt}/{retry_count} 失败: 未知错误 - {e}")
+            
+    # Fallback Mechanism: 如果多次重试全部失败，绝对不能盲目买入
+    log_error(f"[!!!] {symbol} 决策环节彻底熔断，触发本地防御机制，强制要求 HOLD。")
+    return {"action": "HOLD", "reason": "API_ERROR_OR_PARSE_FAILED_FALLBACK"}
 
 if __name__ == "__main__":
     setup_global_proxy()

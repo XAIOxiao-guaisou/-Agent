@@ -1,9 +1,11 @@
-import time
-import random
-import datetime
 import pandas as pd
 import akshare as ak
+from base64 import b64encode
+import datetime
+import time
+import random
 from config import setup_global_proxy
+from debug_sentinel import log_info, log_error, log_warn
 
 # ==========================================
 # Phase 2: Perception Layer (Data Harvester)
@@ -19,17 +21,12 @@ TARGET_POOL = ["00700", "03690", "09988"]
 
 def fetch_and_clean_kline_data(symbol: str, period: str = "60") -> pd.DataFrame:
     """
-    抓取指定港股的 K 线数据并进行脏数据清洗
-    Fetch K-line data for a specific HK stock and clean dirty data.
-    
-    :param symbol: 股票代码 (例如 "00700")
-    :param period: K线周期, 默认 "60" 分钟线
-    :return: 清洗后的 DataFrame
+    抓取并清洗指定股票的 K 线数据 (默认 60 分钟级别)
     """
     if symbol not in TARGET_POOL:
         raise ValueError(f"[!] 越权访问警告: {symbol} 不在 TARGET_POOL 白名单中！")
 
-    print(f"[*] 正在抓取 {symbol} 的 {period} 分钟线数据...")
+    log_info(f"[*] 正在拉取 {symbol} 的 {period} 分钟级别感知数据...")
     
     try:
         # 使用 AkShare 的 stock_hk_hist_min_em 接口获取港股分时行情数据 (东方财富数据源)
@@ -71,11 +68,11 @@ def fetch_and_clean_kline_data(symbol: str, period: str = "60") -> pd.DataFrame:
         # 清除因为计算指标产生的 NaN 行
         df.dropna(inplace=True)
         
-        print(f"[+] {symbol} 数据获取与清洗完成，最新收盘价: {df.iloc[-1]['收盘']}, RSI: {df.iloc[-1]['RSI_14']:.2f}")
+        log_info(f"[+] {symbol} 收割完成: 获取到 {len(df)} 根清洗过的高质量 K 线。")
         return df
 
     except Exception as e:
-        print(f"[-] 获取 {symbol} 数据失败: {str(e)}")
+        log_error(f"[-] 数据收割失败 ({symbol}): {str(e)}")
         return None
 
 # ==========================================
@@ -121,13 +118,13 @@ def fetch_sentiment_news(symbol: str) -> list:
             # 注意: 不同版本的 AkShare 返回列名可能存在差异，通常包含 '新闻标题'
             titles = news_df['新闻标题'].head(5).tolist()
             news_list = [f"【市场新闻】{title}" for title in titles]
-            print(f"[+] {symbol} 情绪收集完毕，共获取 {len(news_list)} 条真实新闻弹药。")
+            log_info(f"[+] {symbol} 情绪收集完毕，共获取 {len(news_list)} 条真实新闻弹药。")
         else:
-            print(f"[-] {symbol} 未抓取到有效新闻，弹药库为空。")
+            log_warn(f"[-] {symbol} 未抓取到有效新闻，弹药库为空。")
             
         return news_list
     except Exception as e:
-        print(f"[-] 获取 {symbol} 真新闻数据失败: {str(e)}")
+        log_error(f"[-] 获取 {symbol} 真新闻数据失败: {str(e)}")
         return []
 
 if __name__ == "__main__":
