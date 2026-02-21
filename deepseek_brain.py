@@ -1,5 +1,6 @@
 import json
 import re
+import os
 import requests
 from config import setup_global_proxy
 
@@ -7,9 +8,10 @@ from config import setup_global_proxy
 # Phase 3: Decision Layer (DeepSeek Brain Integration)
 # ==========================================
 
-# 预设 API KEY (请替换为您真实的 DeepSeek API Key)
-# Preset API KEY (Please replace with your actual DeepSeek API Key)
-DEEPSEEK_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+# 从环境变量获取真实的 DeepSeek API Key，实现安全脱敏 (Fetch API key from environment variable for security)
+# Windows CMD 设置方式 (Windows CMD): set DEEPSEEK_API_KEY=sk-xxxx
+# PowerShell 设置方式: $env:DEEPSEEK_API_KEY="sk-xxxx"
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_API_URL = "https://api.deepseek.com/chat/completions"
 # 假设我们使用的是 r1 推理模型
 # Assuming we are using the r1 reasoning model
