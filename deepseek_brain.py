@@ -2,7 +2,11 @@ import json
 import re
 import os
 import requests
+from dotenv import load_dotenv
 from config import setup_global_proxy
+
+# 加载 .env 环境变量配置 (Load .env configuration)
+load_dotenv()
 
 # ==========================================
 # Phase 3: Decision Layer (DeepSeek Brain Integration)
